@@ -13,7 +13,7 @@ app.use("/api/memberships", require("./routes/membership.routes"));
 
 app.get("/api/health", (req, res) =>
 {
-    res.json({ status: "OK" });
+    res.json({ status: "Jancok njaran" });
 });
 
 module.exports = app;

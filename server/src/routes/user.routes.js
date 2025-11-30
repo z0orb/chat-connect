@@ -1,27 +1,21 @@
 const router = require("express").Router();
+const controller = require("../controllers/user.controller");
 
-//GET semua user
-router.get("/", (req, res) => 
-{
-  res.json({ msg: "get all users placeholder" });
-});
+//GET semua user 
+router.get("/api/users", controller.getAllUser);
 
-//GET user by ID
-router.get("/:id", (req, res) => 
-{
-  res.json({ msg: "get user by id placeholder" });
-});
+//GET user by ID 
+router.get("/api/users/:uid", controller.getUserById);
 
-//UPDATE bio user
-router.patch("/:id/profile", (req, res) =>
-{
-    res.json({ msg: "update user bio placeholder" });
-});
+//UPDATE username
+router.patch("/api/users/:uid/profile/username", controller.updateUsername);
 
-//UPDATE profile picture user
-router.patch("/:id/profile", (req, res) =>
-{
-    res.json({ msg: "update user avatar placeholder" });
-});
+//UPDATE user profile ke db
+router.patch("/api/users/:uid", controller.updateProfile);
 
+//UPDATE bio
+router.patch("/api/users/:uid/profile/bio", controller.updateBio);
+
+//DELETE akun user
+router.delete("/api/users/:uid", controller.deleteUserAccount);
 module.exports = router;

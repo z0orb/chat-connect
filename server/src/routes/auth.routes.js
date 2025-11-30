@@ -1,15 +1,10 @@
 const router = require("express").Router();
+const controller = require("../controllers/auth.controller");
 
 //CREATE akun baru/register
-router.post("/register", (req, res) =>
-{
-    res.json({ msg: "register placeholder" });
-});
+router.post("/api/auth/register", controller.register)
 
 //CREATE login existing akun
-router.post("/login", (req, res) =>
-{
-    res.json({ msg: "login placeholder" });
-});
+router.post("/api/auth/login", controller.login);
 
 module.exports = router;

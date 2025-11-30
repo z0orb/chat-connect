@@ -1,15 +1,16 @@
 const router = require("express").Router();
+const controller = require("../controllers/message.controller");
 
 //GET semua message
-router.get("/", (req, res) => 
-{
-  res.json({ msg: "get all messages placeholder" });
-});
+router.get("/api/messages", controller.getAll);
 
 //CREATE message baru
-router.post("/", (req, res) =>
-{
-    res.json({ msg: "send message placeholder" });
-});
+router.post("/api/messages", controller.sendMessage);
+
+//DELETE message by msg id
+router.delete("/api/messages/:msgid", controller.deleteMessage);
+
+//UPDATE message by msg id (edit message)
+router.patch("/api/messages/:msgid", controller.editMessage);
 
 module.exports = router;

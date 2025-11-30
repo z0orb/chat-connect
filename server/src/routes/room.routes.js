@@ -1,20 +1,19 @@
 const router = require("express").Router();
+const controller = require("../controllers/room.controller");
 
 //GET semua room
-router.get("/", (req, res) => 
-{
-  res.json({ msg: "get all rooms placeholder" });
-});
-
-//CREATE room baru
-router.post("/", (req, res) =>
-{
-    res.json({ msg: "create room placeholder" });
-});
+router.get("/api/rooms", controller.getAllRooms);
 
 //GET room by ID
-router.get("/:id", (req, res) =>
-{
-    res.json({ msg: "get room by id placeholder" });
-});
+router.get("/api/rooms/:rid", controller.getRoomById);
+
+//CREATE room baru
+router.post("/api/rooms", controller.createRoom);
+
+//UPDATE room ke db
+router.patch("/api/rooms/:rid", controller.updateRoom);
+
+//DELETE room by room id
+router.delete("/api/rooms/:rid", controller.deleteRoomById);
+
 module.exports = router;
