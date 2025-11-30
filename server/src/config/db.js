@@ -10,7 +10,7 @@ module.exports = async() =>
 
     catch (err)
     {
-        console.error("MongoDB error:", err);
+        console.error("MongoDB error:", err.message);
         process.exit(1);
     }
 };
