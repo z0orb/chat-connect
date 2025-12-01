@@ -21,7 +21,6 @@ const RoomSchema = new mongoose.Schema(
         {
             type: String,
             unique: true,
-            required: true,
             index: true
         },
 
@@ -60,16 +59,13 @@ const RoomSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-//GEnerate unique room id sebelum disave
-RoomSchema.pre('save', async function (next) 
+// Generate unique room id sebelum disave
+RoomSchema.pre('save', function () 
 {
-    if (!this.isNew) return next();
-
-    //Generarte room id unique
-    const randomId = Math.random().toString(36).substring(2, 10).toUpperCase();
-    this.roomId = `ROOM_${randomId}_${Date.now()}`;
-
-    next();
+    if (!this.roomId) {
+      const randomId = Math.random().toString(36).substring(2, 10).toUpperCase();
+      this.roomId = `ROOM_${randomId}_${Date.now()}`;
+    }
 });
 
 module.exports = mongoose.model('Room', RoomSchema);

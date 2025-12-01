@@ -10,10 +10,10 @@ app.use("/api/users", require ("./routes/user.routes"));
 app.use("/api/rooms", require("./routes/room.routes"));
 app.use("/api/messages", require("./routes/message.routes"));
 app.use("/api/memberships", require("./routes/membership.routes"));
-
+app.use('/api', require('./routes/membership.routes'));
 app.get("/api/health", (req, res) =>
 {
-    res.json({ status: "Jancok njaran" });
+    res.json({ status: "OK" });
 });
 
 module.exports = app;

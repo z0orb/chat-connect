@@ -72,8 +72,9 @@ exports.sendMessage = async (req, res) =>
         });
     
         await newMessage.save();
-    
-        const populatedMessage = await newMessage
+        
+        //requery pakai populate
+        const populatedMessage = await Message.findById(newMessage._id)
           .populate('sender', 'username avatar')
           .populate('room', 'roomName');
     
