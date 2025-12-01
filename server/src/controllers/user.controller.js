@@ -1,36 +1,212 @@
-//GET semua user 
-exports.getAllUser = (req, res) =>
-{
-    res.json({ msg: "get all user placeholder"});
-}
+const User = require('../models/User');
 
+//GET semua user 
+exports.getAllUser = async (req, res) =>
+{
+    try
+    {
+        const users = await User.find()
+        .select('-password')
+        .populate('createdRooms', 'roomName roomId')
+        .populate('joinedRooms', 'roomName roomId');
+
+        res.status(200).json({
+            message: "Successfully fetched all users",
+            count: users.length,
+            data: users
+        });
+    }
+
+    catch (err)
+    {
+        console.error(err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+};
 
 //GET user by ID 
-exports.getUserById = (req, res) =>
+exports.getUserById = async (req, res) =>
 {
-    res.json({ msg: "get users by id"});
-}
+    try
+    {
+        const { uid } = req.params;
+
+        const user = await User.findById(uid)
+        .select('-password')
+        .populate('createdRooms', 'roomName roomId')
+        .populate('joinedRooms', 'roomName roomId');
+
+        if (!user)
+        {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.status(200).json({
+            message: "Successfully fetched user data",
+            data: user
+        });
+    }
+
+    catch (err)
+    {
+        console.erorr(err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+};
 
 //UPDATE username
-exports.updateUsername = (req, res) =>
+exports.updateUsername = async (req, res) =>
 {
-    res.json({ msg: "update username placeholder"});
-}
+    try
+    {
+        const { uid } = req.params;
+        const { username } = req.body;
+
+        if (!username || username.trim() === '')
+        {
+            return res.status(400).json({ error: "Username must be filled" });
+        }
+
+        //check username existing sudahan apa beum
+        const existingUser = await User.findOne({
+            username,
+            _id: { $ne: uid }
+        });
+
+        if (existingUser)
+        {
+            return res.status(400).json({ error: "Username has already been used" });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            uid,
+            { username },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user)
+        {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.status(200).json({
+            message: "Username successfully updated",
+            data: user
+        });
+    }
+
+    catch (err)
+    {
+        console.error(err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+};
 
 //UPDATE bio
-exports.updateBio = (req, res) =>
+exports.updateBio = async (req, res) =>
 {
-    res.json({ msg: "update user bio placeholder"});
-}
+    try
+    {
+        const { uid } = req.params;
+        const { bio } = req.body;
 
-//UPDATE user profile
-exports.updateProfile = (req, res) =>
+        if (bio === undefined)
+        {
+            return res.status(400).json({ error: "Bio must be filled" });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            uid,
+            { bio },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user)
+        {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.status(200).json({
+            message: "Bio successfully updated",
+            data: user
+        });
+    }
+
+    catch (err)
+    {
+        console.error(err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+};
+
+//UPDATE user profile (username, bio, avatar, status)
+exports.updateProfile = async (req, res) =>
 {
-    res.json({ msg: "placeholder update profile ke db"});
-}
+    try 
+    {
+        const { uid } = req.params;
+        const { username, bio, avatar, status } = req.body;
+    
+        // Build update object cuma utk field yang di provide
+        const updateData = {};
+        if (username) updateData.username = username;
+        if (bio) updateData.bio = bio;
+        if (avatar) updateData.avatar = avatar;
+        if (status) updateData.status = status;
+    
+        if (Object.keys(updateData).length === 0) 
+        {
+            return res.status(400).json({ 
+            error: "You must update a minimum of 1 field" 
+          });
+        }
+    
+        const user = await User.findByIdAndUpdate(
+          uid,
+          updateData,
+          { new: true, runValidators: true }
+        ).select('-password');
+    
+        if (!user) 
+        {
+          return res.status(404).json({ error: "User not found" });
+        }
+    
+        res.status(200).json({
+          message: "Profile successfully updated",
+          data: user
+        });
+      } 
+      
+      catch (err) 
+      {
+        console.error(err);
+        res.status(500).json({ error: "Server error", details: err.message });
+      }
+};
 
 //DELETE akun user
-exports.deleteUserAccount = (req, res) =>
+exports.deleteUserAccount = async (req, res) =>
 {
-    res.json({ msg: "delete user account placeholder"});
-}
+    try {
+        const { uid } = req.params;
+    
+        const user = await User.findByIdAndDelete(uid);
+    
+        if (!user) 
+        {
+          return res.status(404).json({ error: "User not found" });
+        }
+    
+        res.status(200).json({
+          message: "User account successfully deleted"
+        });
+
+      } 
+      
+      catch (err) 
+      {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', details: err.message });
+      }
+};
