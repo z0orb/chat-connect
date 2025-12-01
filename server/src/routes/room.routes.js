@@ -1,19 +1,20 @@
 const router = require("express").Router();
 const controller = require("../controllers/room.controller");
+const { verifyToken } = require('../middleware/auth');
 
 //GET semua room
-router.get("/api/rooms", controller.getAllRooms);
+router.get("/", controller.getAllRooms);
 
 //GET room by ID
-router.get("/api/rooms/:rid", controller.getRoomById);
+router.get("/:rid", controller.getRoomById);
 
 //CREATE room baru
-router.post("/api/rooms", controller.createRoom);
+router.post("/", verifyToken, controller.createRoom);
 
 //UPDATE room ke db
-router.patch("/api/rooms/:rid", controller.updateRoom);
+router.patch("/:rid", verifyToken, controller.updateRoom);
 
 //DELETE room by room id
-router.delete("/api/rooms/:rid", controller.deleteRoomById);
+router.delete("/:rid", verifyToken, controller.deleteRoomById);
 
 module.exports = router;

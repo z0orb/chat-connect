@@ -1,16 +1,17 @@
 const router = require("express").Router();
 const controller = require("../controllers/message.controller");
+const { verifyToken } = require('../middleware/auth');
 
 //GET semua message
-router.get("/api/messages", controller.getAll);
+router.get("/", controller.getAll);
 
 //CREATE message baru
-router.post("/api/messages", controller.sendMessage);
+router.post("/", verifyToken, controller.sendMessage);
 
 //DELETE message by msg id
-router.delete("/api/messages/:msgid", controller.deleteMessage);
+router.delete("/:msgid", verifyToken, controller.deleteMessage);
 
 //UPDATE message by msg id (edit message)
-router.patch("/api/messages/:msgid", controller.editMessage);
+router.patch("/:msgid", verifyToken, controller.editMessage);
 
 module.exports = router;

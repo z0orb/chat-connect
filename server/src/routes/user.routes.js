@@ -1,21 +1,23 @@
 const router = require("express").Router();
 const controller = require("../controllers/user.controller");
+const { verifyToken } = require('../middleware/auth');
 
 //GET semua user 
-router.get("/api/users", controller.getAllUser);
+router.get("/", controller.getAllUser);
 
 //GET user by ID 
-router.get("/api/users/:uid", controller.getUserById);
+router.get("/:uid", controller.getUserById);
 
 //UPDATE username
-router.patch("/api/users/:uid/profile/username", controller.updateUsername);
+router.patch("/:uid/username", verifyToken, controller.updateUsername);
 
 //UPDATE user profile ke db
-router.patch("/api/users/:uid", controller.updateProfile);
+router.patch("/:uid", verifyToken, controller.updateProfile);
 
 //UPDATE bio
-router.patch("/api/users/:uid/profile/bio", controller.updateBio);
+router.patch("/:uid/bio", verifyToken, controller.updateBio);
 
 //DELETE akun user
-router.delete("/api/users/:uid", controller.deleteUserAccount);
+router.delete("/:uid", verifyToken, controller.deleteUserAccount);
+
 module.exports = router;
