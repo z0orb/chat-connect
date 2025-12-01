@@ -9,5 +9,5 @@ const server = http.createServer(app);
 
 require("./sockets/chat.socket")(server);
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => console.log(`Server running on ${PORT}`));

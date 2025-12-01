@@ -58,22 +58,25 @@ const UserSchema = new mongoose.Schema(
 );
 
 //Hash password sebelum save changes
-UserSchema.pre('save', async function (next)
-{
-    if (!this.isModified('password')) return next();
-
-    try
+UserSchema.pre('save', async function() {
+    //only has kalo new
+    //WOI UDAH GAUSAH PAKAI next() lagi mongo v5.x sudah gaperlu njir
+    if (!this.isModified('password')) return;
+  
+    try 
     {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    }
-
-    catch (err)
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    } 
+    
+    catch (error) 
     {
-        next(err);
+      throw error;
     }
-});
+  });
+  
+  
+  
 
 //Method compare password
 UserSchema.methods.comparePassword = async function (inputPassword)
