@@ -8,7 +8,8 @@ const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 //GET semua room
 exports.getAllRooms = async (req, res) =>
 {
-    try {
+    try 
+    {
         const rooms = await Room.find()
           .populate('creator', 'username avatar')
           .populate('members', 'username avatar')
@@ -34,16 +35,28 @@ exports.getRoomById = async (req, res) =>
     try {
         const { rid } = req.params;
     
-        const room = await Room.findOne({ 
-          $or: [{ roomId: rid }, { _id: rid }] 
-        })
-          .populate('creator', 'username avatar')
-          .populate('members', 'username avatar');
-    
+        //regex custom roomId dulu baru ._id kalo gaada
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+        {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
+        
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
         }
+        
+        // Populate after finding
+        await room.populate('creator', 'username avatar');
+        await room.populate('members', 'username avatar');
     
         res.status(200).json({
           message: "Successfully fetched room data",
@@ -102,7 +115,7 @@ exports.createRoom = async (req, res) =>
           const creator = await User.findById(creatorId);
           await ably.channels.get(`global:rooms`).publish('room_created', 
             {
-            roomId: newRoom.roomId,
+            roomId: newRoom.roomId,  // Use custom roomId for Ably event
             _id: newRoom._id,
             roomName: newRoom.roomName,
             creatorId: creatorId,
@@ -138,9 +151,18 @@ exports.updateRoom = async (req, res) =>
         const { roomName, description, icon, isPrivate } = req.body;
         const userId = req.userId;
     
-        const room = await Room.findOne({ 
-          $or: [{ roomId: rid }, { _id: rid }] 
-        });
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+        {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+        
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
 
         if (!room)
         {
@@ -170,7 +192,7 @@ exports.updateRoom = async (req, res) =>
         }
     
         const updatedRoom = await Room.findByIdAndUpdate(
-          room._id,
+          room._id,  // Use the MongoDB _id from the found room
           updateData,
           { new: true }
         ).populate('creator', 'username avatar')
@@ -197,9 +219,19 @@ exports.deleteRoomById = async (req, res) =>
         const { rid } = req.params;
         const userId = req.userId;
     
-        const room = await Room.findOne({ 
-          $or: [{ roomId: rid }, { _id: rid }] 
-        });
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+        {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+        
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
+        
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });

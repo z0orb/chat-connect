@@ -12,7 +12,19 @@ exports.getAllMembers = async (req, res) =>
     {
         const { rid } = req.params;
     
-        const room = await Room.findOne({ roomId: rid });
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+          {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+        
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
+        
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -43,8 +55,19 @@ exports.getMemberById = async (req, res) =>
     {
         const { rid, uid } = req.params;
     
-        // Query using custom roomId field
-        const room = await Room.findOne({ roomId: rid });
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+        {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+        
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
+        
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -96,7 +119,6 @@ exports.addMember = async (req, res) =>
           return res.status(404).json({ error: "User not found" });
         }
     
-        // Query using custom roomId field OR _id
         const room = await Room.findOne({ 
           $or: [{ roomId: roomId }, { _id: roomId }] 
         });
@@ -190,8 +212,19 @@ exports.updateMemberRole = async (req, res) =>
           });
         }
     
-        // Query using custom roomId field
-        const room = await Room.findOne({ roomId: rid });
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+        {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+        
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
+        
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -243,9 +276,20 @@ exports.kickMemberById = async (req, res) =>
     {
         const { rid, uid } = req.params;
         const requesterId = req.userId;
-    
-        // Query using custom roomId field
-        const room = await Room.findOne({ roomId: rid });
+
+        let room;
+        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+        {
+          room = await Room.findOne({ 
+            $or: [{ roomId: rid }, { _id: rid }] 
+          });
+        } 
+        
+        else 
+        {
+          room = await Room.findOne({ roomId: rid });
+        }
+        
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -333,10 +377,19 @@ exports.joinRoom = async (req, res) =>
       return res.status(400).json({ error: "Room ID must be provided" });
     }
 
-    // Query using custom roomId field OR _id (flexible)
-    const room = await Room.findOne({ 
-      $or: [{ roomId: roomId }, { _id: roomId }] 
-    });
+    let room;
+    if (roomId.match(/^[0-9a-fA-F]{24}$/)) 
+    {
+      room = await Room.findOne({ 
+        $or: [{ roomId: roomId }, { _id: roomId }] 
+      });
+    } 
+    
+    else 
+    {
+      room = await Room.findOne({ roomId: roomId });
+    }
+    
     if (!room) 
     {
       return res.status(404).json({ error: "Room not found" });
@@ -347,6 +400,7 @@ exports.joinRoom = async (req, res) =>
       userId,
       roomId: room._id
     });
+
     if (existingMembership) 
     {
       return res.status(400).json({ error: "You are already a member of this room" });
@@ -432,10 +486,20 @@ exports.leaveRoom = async (req, res) =>
       return res.status(400).json({ error: "Room ID must be provided" });
     }
 
-    // Query using custom roomId field OR _id (flexible)
-    const room = await Room.findOne({ 
-      $or: [{ roomId: roomId }, { _id: roomId }] 
-    });
+    let room;
+    if (roomId.match(/^[0-9a-fA-F]{24}$/)) 
+    {
+
+      room = await Room.findOne({ 
+        $or: [{ roomId: roomId }, { _id: roomId }] 
+      });
+    } 
+    
+    else
+    {
+      room = await Room.findOne({ roomId: roomId });
+    }
+    
     if (!room) 
     {
       return res.status(404).json({ error: "Room not found" });
@@ -479,7 +543,8 @@ exports.leaveRoom = async (req, res) =>
     await room.save();
 
     //Remove room dari joinedRoom user
-    await User.findByIdAndUpdate(userId, {
+    await User.findByIdAndUpdate(userId, 
+    {
       $pull: { joinedRooms: room._id }
     });
 
