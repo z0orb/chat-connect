@@ -1,5 +1,8 @@
 const Message = require('../models/Message');
 const Room = require('../models/Room');
+const Ably = require('ably');
+
+const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua message
 exports.getAll = async (req, res) =>
@@ -77,6 +80,24 @@ exports.sendMessage = async (req, res) =>
         const populatedMessage = await Message.findById(newMessage._id)
           .populate('sender', 'username avatar')
           .populate('room', 'roomName');
+
+          try 
+          {
+            await ably.channels.get(`rooms:${roomId}`).publish('receive_message', 
+            {
+              userId: senderId,
+              username: populatedMessage.sender.username,
+              message: populatedMessage.content,
+              timestamp: populatedMessage.createdAt,
+              messageId: newMessage._id
+            });
+            console.log(`Message published to rooms:${roomId}`);
+          } 
+          
+          catch (ablyErr) 
+          {
+            console.error('Ably publish error (sendMessage):', ablyErr.message);
+          }
     
         res.status(201).json({
           message: "Message successfully sent",
@@ -115,7 +136,22 @@ exports.deleteMessage = async (req, res) =>
         }
     
         await Message.findByIdAndDelete(msgid);
-    
+        
+        try 
+        {
+          await ably.channels.get(`rooms:${roomId}`).publish('message_deleted', 
+          {
+            messageId: msgid
+          });
+
+          console.log(`Message deletion published to rooms:${roomId}`);
+        } 
+        
+        catch (ablyErr) 
+        {
+          console.error('Ably publish error (deleteMessage):', ablyErr.message);
+        }
+
         res.status(200).json({
           message: "Message successfully deleted"
         });
@@ -168,7 +204,23 @@ exports.editMessage = async (req, res) =>
           { new: true }
         ).populate('sender', 'username avatar')
          .populate('room', 'roomName');
-    
+
+         try 
+         {
+          await ably.channels.get(`rooms:${roomId}`).publish('message_edited', {
+            messageId: msgid,
+            newContent: updatedMessage.content,
+            editedAt: updatedMessage.editedAt
+          });
+
+          console.log(`Message edit published to rooms:${roomId}`);
+        } 
+        
+        catch (ablyErr) 
+        {
+          console.error('Ably publish error (editMessage):', ablyErr.message);
+        }
+
         res.status(200).json({
           message: "Message successfully updated",
           data: updatedMessage

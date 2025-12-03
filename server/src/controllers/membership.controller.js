@@ -1,6 +1,9 @@
 const RoomMembership = require('../models/RoomMembership');
 const Room = require('../models/Room');
 const User = require('../models/User');
+const Ably = require('ably');
+
+const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua anggota room
 exports.getAllMembers = async (req, res) => 
@@ -125,7 +128,31 @@ exports.addMember = async (req, res) =>
         });
     
         const populatedMembership = await membership.populate('userId', 'username avatar');
-    
+        
+        try 
+        {
+          const updatedRoom = await Room.findById(roomId).populate('members', 'username');
+          await ably.channels.get(`rooms:${roomId}`).publish('user_joined', 
+            {
+            userId: userId,
+            username: user.username,
+            message: `${user.username} joined the room`,
+            users: updatedRoom.members.map(m => 
+              ({ 
+              userId: m._id, 
+              username: m.username 
+            })),
+            count: updatedRoom.members.length
+          });
+  
+          console.log(`User joined published to rooms:${roomId}`);
+        } 
+        
+        catch (ablyErr) 
+        {
+          console.error('Ably publish error (addMember):', ablyErr.message);
+        }
+
         res.status(201).json({
           message: "Member successfully added to room",
           data: populatedMembership
@@ -245,6 +272,30 @@ exports.kickMemberById = async (req, res) =>
         {
           $pull: { joinedRooms: rid }
         });
+
+        try 
+        {
+          const updatedRoom = await Room.findById(rid).populate('members', 'username');
+          await ably.channels.get(`rooms:${rid}`).publish('user_left', 
+            {
+            userId: uid,
+            username: kickedUser.username,
+            message: `${kickedUser.username} was removed from the room`,
+            users: updatedRoom.members.map(m => 
+              ({ 
+              userId: m._id, 
+              username: m.username 
+            })),
+            count: updatedRoom.members.length
+          });
+          console.log(`User left published to rooms:${rid}`);
+        } 
+        
+        catch (ablyErr) 
+        {
+          console.error('Ably publish error (kickMemberById):', ablyErr.message);
+        }
+
     
         res.status(200).json({
           message: "Member successfully kicked from room"

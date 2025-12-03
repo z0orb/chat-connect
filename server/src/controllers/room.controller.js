@@ -1,6 +1,9 @@
 const Room = require('../models/Room');
 const User = require('../models/User');
 const RoomMembership = require('../models/RoomMembership');
+const Ably = require('ably');
+
+const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua room
 exports.getAllRooms = async (req, res) =>
@@ -91,6 +94,25 @@ exports.createRoom = async (req, res) =>
         });
     
         const populatedRoom = await newRoom.populate('creator', 'username avatar');
+        
+        try 
+        {
+          const creator = await User.findById(creatorId);
+          await ably.channels.get(`global:rooms`).publish('room_created', 
+            {
+            roomId: newRoom._id,
+            roomName: newRoom.roomName,
+            creatorId: creatorId,
+            creatorName: creator.username,
+            isPrivate: newRoom.isPrivate
+          });
+          console.log(`Room created published to global:rooms`);
+        } 
+        
+        catch (ablyErr) 
+        {
+          console.error('Ably publish error (createRoom):', ablyErr.message);
+        }
     
         res.status(201).json({
           message: "Room successfully made",
@@ -200,6 +222,22 @@ exports.deleteRoomById = async (req, res) =>
           { $or: [{ createdRooms: rid }, { joinedRooms: rid }] },
           { $pull: { createdRooms: rid, joinedRooms: rid } }
         );
+
+        try 
+        {
+          await ably.channels.get(`rooms:${rid}`).publish('room_deleted', 
+            {
+            roomId: rid,
+            message: 'This room has been deleted by the creator'
+          });
+          console.log(`Room deletion published to rooms:${rid}`);
+        } 
+        
+        catch (ablyErr) 
+        {
+          console.error('Ably publish error (deleteRoomById):', ablyErr.message);
+        }
+
     
         res.status(200).json({
           message: "Room successfully deleted"
