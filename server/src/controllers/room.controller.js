@@ -6,70 +6,121 @@ const Ably = require('ably');
 const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua room
-exports.getAllRooms = async (req, res) =>
+exports.getAllRooms = async (req, res) => 
 {
-    try 
-    {
-        const rooms = await Room.find()
-          .populate('creator', 'username avatar')
-          .populate('members', 'username avatar')
-          .sort({ createdAt: -1 });
+  try 
+  {
+    const userId = req.userId;
     
-        res.status(200).json({
-          message: "Successfully fetched all rooms",
-          count: rooms.length,
-          data: rooms
-        });
-      } 
-      
-      catch (err) 
+    const rooms = await Room.find()
+      .populate('creator', 'username avatar')
+      .populate('members', 'username avatar')
+      .sort({ createdAt: -1 });
+    
+    const filteredRooms = rooms.filter(room => 
       {
-        console.error(err);
-        res.status(500).json({ error: "Server error", details: err.message });
+      if (!room.isPrivate) 
+      {
+        return true;
       }
+      
+      if (room.isPrivate) 
+      {
+        if (!userId) 
+        {
+          return false;
+        }
+        
+        if (room.creator._id.toString() === userId) 
+        {
+          return true;
+        }
+        
+        const isMember = room.members.some(
+          member => member._id.toString() === userId
+        );
+        
+        return isMember;
+      }
+    });
+    
+    res.status(200).json({
+      message: "Successfully fetched all rooms",
+      count: filteredRooms.length,
+      data: filteredRooms
+    });
+  } 
+  
+  catch (err) 
+  {
+    console.error(err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 };
 
 //GET room by room id
-exports.getRoomById = async (req, res) =>
+exports.getRoomById = async (req, res) => 
 {
-    try {
-        const { rid } = req.params;
+  try 
+  {
+    const { rid } = req.params;
+    const userId = req.userId; 
     
-        //regex custom roomId dulu baru ._id kalo gaada
-        let room;
-        if (rid.match(/^[0-9a-fA-F]{24}$/)) 
-        {
-          room = await Room.findOne({ 
-            $or: [{ roomId: rid }, { _id: rid }] 
-          });
-        } 
-
-        else 
-        {
-          room = await Room.findOne({ roomId: rid });
-        }
-        
-        if (!room) 
-        {
-          return res.status(404).json({ error: "Room not found" });
-        }
-        
-        // Populate after finding
-        await room.populate('creator', 'username avatar');
-        await room.populate('members', 'username avatar');
+    // regex custom roomId dulu baru ._id kalo gaada
+    let room;
+    if (rid.match(/^[0-9a-fA-F]{24}$/)) 
+    {
+      room = await Room.findOne({
+        $or: [{ roomId: rid }, { _id: rid }]
+      });
+    } 
     
-        res.status(200).json({
-          message: "Successfully fetched room data",
-          data: room
-        });
-
-      } 
-      
-      catch (err) 
+    else 
+    {
+      room = await Room.findOne({ roomId: rid });
+    }
+    
+    if (!room) 
+    {
+      return res.status(404).json({ error: "Room not found" });
+    }
+    
+    if (room.isPrivate) 
       {
-        console.error(err);
-        res.status(500).json({ error: "Server error", details: err.message });
+      if (!userId) 
+      {
+        return res.status(403).json({
+          error: "Access denied. This is a private room. Please login."
+        });
       }
+      
+      const isCreator = room.creator._id.toString() === userId;
+      
+      const isMember = room.members.some(
+        member => member._id.toString() === userId
+      );
+  
+      if (!isCreator && !isMember) {
+        return res.status(403).json({
+          error: "Access denied. You are not a member of this private room."
+        });
+      }
+    }
+    
+    await room.populate('creator', 'username avatar');
+    await room.populate('members', 'username avatar');
+    
+    res.status(200).json({
+      message: "Successfully fetched room data",
+      data: room
+    });
+  } 
+  
+  catch (err) 
+  {
+    console.error(err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 };
 
 //CREATE room baru
