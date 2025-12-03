@@ -17,4 +17,9 @@ router.patch('/rooms/:rid/members/:uid', verifyToken, controller.updateMemberRol
 //DELETE membership user atau kick user dari room
 router.delete('/rooms/:rid/members/:uid', verifyToken, controller.kickMemberById);
 
+//POST join room
+router.post('/join', verifyToken, controller.joinRoom);
+
+//POST leave room
+router.post('/leave', verifyToken, controller.leaveRoom);
 module.exports = router;

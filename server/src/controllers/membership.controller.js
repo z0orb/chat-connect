@@ -226,7 +226,7 @@ exports.updateMemberRole = async (req, res) =>
         console.error(err);
         res.status(500).json({ error: "Server error", details: err.message });
       }
-}
+};
   
 //DELETE status membership user / kick user dari room
 exports.kickMemberById = async (req, res) => 
@@ -258,6 +258,9 @@ exports.kickMemberById = async (req, res) =>
             error: "Creator can't be kicked from their own room" 
           });
         }
+
+        //get user info before deletion for Ably event
+        const kickedUser = await User.findById(uid);
     
         //room membership deletion
         await RoomMembership.deleteOne({ roomId: rid, userId: uid });
@@ -296,7 +299,6 @@ exports.kickMemberById = async (req, res) =>
           console.error('Ably publish error (kickMemberById):', ablyErr.message);
         }
 
-    
         res.status(200).json({
           message: "Member successfully kicked from room"
         });
@@ -307,4 +309,203 @@ exports.kickMemberById = async (req, res) =>
         console.error(err);
         res.status(500).json({ error: "Server error", details: err.message });
       }
+};
+
+//POST (join room by sendiri)
+exports.joinRoom = async (req, res) => 
+{
+  try 
+  {
+    const { roomId } = req.body;
+    const userId = req.userId; 
+
+    //input validations
+    if (!roomId) 
+    {
+      return res.status(400).json({ error: "Room ID must be provided" });
+    }
+
+    //cek roomnya exist kagak
+    const room = await Room.findById(roomId);
+    if (!room) 
+    {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    //cek usernya udah member belum
+    const existingMembership = await RoomMembership.findOne({
+      userId,
+      roomId
+    });
+    if (existingMembership) 
+    {
+      return res.status(400).json({ error: "You are already a member of this room" });
+    }
+
+    //bikin membership
+    const membership = new RoomMembership({
+      userId,
+      roomId,
+      role: "member"
+    });
+
+    await membership.save();
+
+    //add ke room members
+    room.members.push(userId);
+    room.memberCount = room.members.length;
+    await room.save();
+
+    //add room ke joinedRooms user
+    await User.findByIdAndUpdate(userId, 
+    {
+      $push: { joinedRooms: roomId }
+    });
+
+    //populate data
+    const populatedMembership = await membership.populate("userId", "username avatar");
+
+    //get user info for Ably event
+    const user = await User.findById(userId);
+
+    //publish Ably event
+    try 
+    {
+      const updatedRoom = await Room.findById(roomId).populate('members', 'username');
+      await ably.channels.get(`rooms:${roomId}`).publish("user_joined", 
+      {
+        userId: userId,
+        username: user.username,
+        message: `${user.username} joined the room`,
+        users: updatedRoom.members.map(m => 
+          ({ 
+          userId: m._id, 
+          username: m.username 
+        })),
+        count: updatedRoom.members.length
+      });
+      console.log(`User joined published to rooms:${roomId}`);
+    } 
+    catch (ablyErr) 
+    {
+      console.error('Ably publish error (joinRoom):', ablyErr.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Successfully joined room",
+      data: populatedMembership
+    });
+  } 
+  
+  catch (err) 
+  {
+    console.error(err);
+    res.status(500).json({
+      error: "Server error",
+      details: err.message
+    });
+  }
+};
+
+//DELETE (remove diri sendiri dari room)
+exports.leaveRoom = async (req, res) => 
+{
+  try 
+  {
+    const { roomId } = req.body;
+    const userId = req.userId; 
+
+    //input vals
+    if (!roomId) 
+    {
+      return res.status(400).json({ error: "Room ID must be provided" });
+    }
+
+    //cek existensi
+    const room = await Room.findById(roomId);
+    if (!room) 
+    {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    //room creator gabisa leave harus delete room dulu ygy
+    if (room.creator.toString() === userId) 
+    {
+      return res.status(400).json({
+        error: "Room creator cannot leave. Delete the room instead."
+      });
+    }
+
+    //cek usernya member apa gak
+    const membership = await RoomMembership.findOne({
+      userId,
+      roomId
+    });
+
+    if (!membership) 
+    {
+      return res.status(404).json({
+        error: "You are not a member of this room"
+      });
+    }
+
+    //get user info before deletion for Ably event
+    const user = await User.findById(userId);
+
+    //happus membership
+    await RoomMembership.deleteOne({
+      userId,
+      roomId
+    });
+
+    //remove dari room member array
+    room.members = room.members.filter(
+      memberId => memberId.toString() !== userId
+    );
+    room.memberCount = room.members.length;
+    await room.save();
+
+    //Remove room dari joinedRoom user
+    await User.findByIdAndUpdate(userId, {
+      $pull: { joinedRooms: roomId }
+    });
+
+    //ably event publish
+    try 
+    {
+      const updatedRoom = await Room.findById(roomId).populate('members', 'username');
+      await ably.channels.get(`rooms:${roomId}`).publish("user_left", 
+      {
+        userId: userId,
+        username: user.username,
+        message: `${user.username} left the room`,
+        users: updatedRoom.members.map(m => 
+          ({ 
+          userId: m._id, 
+          username: m.username 
+        })),
+        count: updatedRoom.members.length
+      });
+      console.log(`User left published to rooms:${roomId}`);
+    } 
+    catch (ablyErr) 
+    {
+      console.error('Ably publish error (leaveRoom):', ablyErr.message);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Successfully left room"
+    });
+  } 
+  
+  catch (err) 
+  {
+    console.error(err);
+    res.status(500).json({
+      error: "Server error",
+      details: err.message
+    });
+  }
 };
