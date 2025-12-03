@@ -34,7 +34,9 @@ exports.getRoomById = async (req, res) =>
     try {
         const { rid } = req.params;
     
-        const room = await Room.findById(rid)
+        const room = await Room.findOne({ 
+          $or: [{ roomId: rid }, { _id: rid }] 
+        })
           .populate('creator', 'username avatar')
           .populate('members', 'username avatar');
     
@@ -100,7 +102,8 @@ exports.createRoom = async (req, res) =>
           const creator = await User.findById(creatorId);
           await ably.channels.get(`global:rooms`).publish('room_created', 
             {
-            roomId: newRoom._id,
+            roomId: newRoom.roomId,
+            _id: newRoom._id,
             roomName: newRoom.roomName,
             creatorId: creatorId,
             creatorName: creator.username,
@@ -116,11 +119,7 @@ exports.createRoom = async (req, res) =>
     
         res.status(201).json({
           message: "Room successfully made",
-          data: 
-          {
-            ...populatedRoom.toObject(),
-            roomId: newRoom.roomId
-          }
+          data: populatedRoom
         });
       } 
       
@@ -139,8 +138,9 @@ exports.updateRoom = async (req, res) =>
         const { roomName, description, icon, isPrivate } = req.body;
         const userId = req.userId;
     
-        //check if room sudah existing
-        const room = await Room.findById(rid);
+        const room = await Room.findOne({ 
+          $or: [{ roomId: rid }, { _id: rid }] 
+        });
 
         if (!room)
         {
@@ -170,7 +170,7 @@ exports.updateRoom = async (req, res) =>
         }
     
         const updatedRoom = await Room.findByIdAndUpdate(
-          rid,
+          room._id,
           updateData,
           { new: true }
         ).populate('creator', 'username avatar')
@@ -197,7 +197,9 @@ exports.deleteRoomById = async (req, res) =>
         const { rid } = req.params;
         const userId = req.userId;
     
-        const room = await Room.findById(rid);
+        const room = await Room.findOne({ 
+          $or: [{ roomId: rid }, { _id: rid }] 
+        });
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -211,26 +213,27 @@ exports.deleteRoomById = async (req, res) =>
           });
         }
     
-        //delete room
-        await Room.findByIdAndDelete(rid);
+        //delete room - use MongoDB _id
+        await Room.findByIdAndDelete(room._id);
     
         //delete all room membership disini
-        await RoomMembership.deleteMany({ roomId: rid });
+        await RoomMembership.deleteMany({ roomId: room._id });
     
         //remove room ini dari semua user
         await User.updateMany(
-          { $or: [{ createdRooms: rid }, { joinedRooms: rid }] },
-          { $pull: { createdRooms: rid, joinedRooms: rid } }
+          { $or: [{ createdRooms: room._id }, { joinedRooms: room._id }] },
+          { $pull: { createdRooms: room._id, joinedRooms: room._id } }
         );
 
         try 
         {
-          await ably.channels.get(`rooms:${rid}`).publish('room_deleted', 
+          await ably.channels.get(`rooms:${room._id}`).publish('room_deleted', 
             {
-            roomId: rid,
+            roomId: room.roomId,  // Send custom roomId
+            _id: room._id,
             message: 'This room has been deleted by the creator'
           });
-          console.log(`Room deletion published to rooms:${rid}`);
+          console.log(`Room deletion published to rooms:${room._id}`);
         } 
         
         catch (ablyErr) 

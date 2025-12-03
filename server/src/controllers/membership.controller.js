@@ -12,14 +12,13 @@ exports.getAllMembers = async (req, res) =>
     {
         const { rid } = req.params;
     
-        //check if roomnya existing dulu
-        const room = await Room.findById(rid);
+        const room = await Room.findOne({ roomId: rid });
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
         }
     
-        const members = await RoomMembership.find({ roomId: rid })
+        const members = await RoomMembership.find({ roomId: room._id })
           .populate('userId', 'username avatar bio')
           .sort({ joinedAt: -1 });
     
@@ -44,8 +43,15 @@ exports.getMemberById = async (req, res) =>
     {
         const { rid, uid } = req.params;
     
+        // Query using custom roomId field
+        const room = await Room.findOne({ roomId: rid });
+        if (!room) 
+        {
+          return res.status(404).json({ error: "Room not found" });
+        }
+
         const member = await RoomMembership.findOne({ 
-          roomId: rid, 
+          roomId: room._id, 
           userId: uid 
         }).populate('userId', 'username avatar bio');
     
@@ -90,8 +96,10 @@ exports.addMember = async (req, res) =>
           return res.status(404).json({ error: "User not found" });
         }
     
-        //check if room ada
-        const room = await Room.findById(roomId);
+        // Query using custom roomId field OR _id
+        const room = await Room.findOne({ 
+          $or: [{ roomId: roomId }, { _id: roomId }] 
+        });
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -100,7 +108,7 @@ exports.addMember = async (req, res) =>
         //check if user == room member
         const existingMembership = await RoomMembership.findOne({
           userId,
-          roomId
+          roomId: room._id
         });
         if (existingMembership) 
         {
@@ -110,7 +118,7 @@ exports.addMember = async (req, res) =>
         //create membership nya room ke user
         const membership = new RoomMembership({
           userId,
-          roomId,
+          roomId: room._id,
           role: 'member'
         });
     
@@ -124,15 +132,15 @@ exports.addMember = async (req, res) =>
         //add ke joinedRooms user
         await User.findByIdAndUpdate(userId, 
         {
-          $push: { joinedRooms: roomId }
+          $push: { joinedRooms: room._id }
         });
     
         const populatedMembership = await membership.populate('userId', 'username avatar');
         
         try 
         {
-          const updatedRoom = await Room.findById(roomId).populate('members', 'username');
-          await ably.channels.get(`rooms:${roomId}`).publish('user_joined', 
+          const updatedRoom = await Room.findById(room._id).populate('members', 'username');
+          await ably.channels.get(`rooms:${room._id}`).publish('user_joined', 
             {
             userId: userId,
             username: user.username,
@@ -145,7 +153,7 @@ exports.addMember = async (req, res) =>
             count: updatedRoom.members.length
           });
   
-          console.log(`User joined published to rooms:${roomId}`);
+          console.log(`User joined published to rooms:${room._id}`);
         } 
         
         catch (ablyErr) 
@@ -182,8 +190,8 @@ exports.updateMemberRole = async (req, res) =>
           });
         }
     
-        //check if room existing
-        const room = await Room.findById(rid);
+        // Query using custom roomId field
+        const room = await Room.findOne({ roomId: rid });
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -191,7 +199,7 @@ exports.updateMemberRole = async (req, res) =>
     
         //authorization check (admin only yang update role)
         const requesterMembership = await RoomMembership.findOne({
-          roomId: rid,
+          roomId: room._id,
           userId: requesterId
         });
     
@@ -204,7 +212,7 @@ exports.updateMemberRole = async (req, res) =>
     
         //role update
         const updatedMembership = await RoomMembership.findOneAndUpdate(
-          { roomId: rid, userId: uid },
+          { roomId: room._id, userId: uid },
           { role },
           { new: true }
         ).populate('userId', 'username avatar');
@@ -236,8 +244,8 @@ exports.kickMemberById = async (req, res) =>
         const { rid, uid } = req.params;
         const requesterId = req.userId;
     
-        //roomcheck ada apa ga
-        const room = await Room.findById(rid);
+        // Query using custom roomId field
+        const room = await Room.findOne({ roomId: rid });
         if (!room) 
         {
           return res.status(404).json({ error: "Room not found" });
@@ -263,7 +271,7 @@ exports.kickMemberById = async (req, res) =>
         const kickedUser = await User.findById(uid);
     
         //room membership deletion
-        await RoomMembership.deleteOne({ roomId: rid, userId: uid });
+        await RoomMembership.deleteOne({ roomId: room._id, userId: uid });
     
         //remove from room members
         room.members = room.members.filter(memberId => memberId.toString() !== uid);
@@ -273,13 +281,13 @@ exports.kickMemberById = async (req, res) =>
         //remove dari joinedRooms user
         await User.findByIdAndUpdate(uid, 
         {
-          $pull: { joinedRooms: rid }
+          $pull: { joinedRooms: room._id }
         });
 
         try 
         {
-          const updatedRoom = await Room.findById(rid).populate('members', 'username');
-          await ably.channels.get(`rooms:${rid}`).publish('user_left', 
+          const updatedRoom = await Room.findById(room._id).populate('members', 'username');
+          await ably.channels.get(`rooms:${room._id}`).publish('user_left', 
             {
             userId: uid,
             username: kickedUser.username,
@@ -291,7 +299,7 @@ exports.kickMemberById = async (req, res) =>
             })),
             count: updatedRoom.members.length
           });
-          console.log(`User left published to rooms:${rid}`);
+          console.log(`User left published to rooms:${room._id}`);
         } 
         
         catch (ablyErr) 
@@ -325,8 +333,10 @@ exports.joinRoom = async (req, res) =>
       return res.status(400).json({ error: "Room ID must be provided" });
     }
 
-    //cek roomnya exist kagak
-    const room = await Room.findById(roomId);
+    // Query using custom roomId field OR _id (flexible)
+    const room = await Room.findOne({ 
+      $or: [{ roomId: roomId }, { _id: roomId }] 
+    });
     if (!room) 
     {
       return res.status(404).json({ error: "Room not found" });
@@ -335,7 +345,7 @@ exports.joinRoom = async (req, res) =>
     //cek usernya udah member belum
     const existingMembership = await RoomMembership.findOne({
       userId,
-      roomId
+      roomId: room._id
     });
     if (existingMembership) 
     {
@@ -345,7 +355,7 @@ exports.joinRoom = async (req, res) =>
     //bikin membership
     const membership = new RoomMembership({
       userId,
-      roomId,
+      roomId: room._id,
       role: "member"
     });
 
@@ -359,7 +369,7 @@ exports.joinRoom = async (req, res) =>
     //add room ke joinedRooms user
     await User.findByIdAndUpdate(userId, 
     {
-      $push: { joinedRooms: roomId }
+      $push: { joinedRooms: room._id }
     });
 
     //populate data
@@ -371,8 +381,8 @@ exports.joinRoom = async (req, res) =>
     //publish Ably event
     try 
     {
-      const updatedRoom = await Room.findById(roomId).populate('members', 'username');
-      await ably.channels.get(`rooms:${roomId}`).publish("user_joined", 
+      const updatedRoom = await Room.findById(room._id).populate('members', 'username');
+      await ably.channels.get(`rooms:${room._id}`).publish("user_joined", 
       {
         userId: userId,
         username: user.username,
@@ -384,7 +394,7 @@ exports.joinRoom = async (req, res) =>
         })),
         count: updatedRoom.members.length
       });
-      console.log(`User joined published to rooms:${roomId}`);
+      console.log(`User joined published to rooms:${room._id}`);
     } 
     catch (ablyErr) 
     {
@@ -422,8 +432,10 @@ exports.leaveRoom = async (req, res) =>
       return res.status(400).json({ error: "Room ID must be provided" });
     }
 
-    //cek existensi
-    const room = await Room.findById(roomId);
+    // Query using custom roomId field OR _id (flexible)
+    const room = await Room.findOne({ 
+      $or: [{ roomId: roomId }, { _id: roomId }] 
+    });
     if (!room) 
     {
       return res.status(404).json({ error: "Room not found" });
@@ -440,7 +452,7 @@ exports.leaveRoom = async (req, res) =>
     //cek usernya member apa gak
     const membership = await RoomMembership.findOne({
       userId,
-      roomId
+      roomId: room._id
     });
 
     if (!membership) 
@@ -456,7 +468,7 @@ exports.leaveRoom = async (req, res) =>
     //happus membership
     await RoomMembership.deleteOne({
       userId,
-      roomId
+      roomId: room._id
     });
 
     //remove dari room member array
@@ -468,14 +480,14 @@ exports.leaveRoom = async (req, res) =>
 
     //Remove room dari joinedRoom user
     await User.findByIdAndUpdate(userId, {
-      $pull: { joinedRooms: roomId }
+      $pull: { joinedRooms: room._id }
     });
 
     //ably event publish
     try 
     {
-      const updatedRoom = await Room.findById(roomId).populate('members', 'username');
-      await ably.channels.get(`rooms:${roomId}`).publish("user_left", 
+      const updatedRoom = await Room.findById(room._id).populate('members', 'username');
+      await ably.channels.get(`rooms:${room._id}`).publish("user_left", 
       {
         userId: userId,
         username: user.username,
@@ -487,7 +499,7 @@ exports.leaveRoom = async (req, res) =>
         })),
         count: updatedRoom.members.length
       });
-      console.log(`User left published to rooms:${roomId}`);
+      console.log(`User left published to rooms:${room._id}`);
     } 
     catch (ablyErr) 
     {
@@ -499,7 +511,6 @@ exports.leaveRoom = async (req, res) =>
       message: "Successfully left room"
     });
   } 
-  
   catch (err) 
   {
     console.error(err);
