@@ -3,7 +3,7 @@ const controller = require("../controllers/message.controller");
 const { verifyToken } = require('../middleware/auth');
 
 //GET semua message
-router.get("/", controller.getAll);
+router.get("/", verifyToken, controller.getAll);
 
 //CREATE message baru
 router.post("/", verifyToken, controller.sendMessage);

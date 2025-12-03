@@ -5,37 +5,65 @@ const Ably = require('ably');
 const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua message
-exports.getAll = async (req, res) =>
-{
-    try 
+exports.getAll = async (req, res) => {
+  try {
+    const { roomId } = req.query;
+    const userId = req.userId;
+    
+    if (!roomId) 
     {
-        const { roomId } = req.query;
+      return res.status(400).json({ error: "Room ID is required" });
+    }
     
-        let query = {};
-        if (roomId) 
-        {
-          query.room = roomId;
-        }
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
     
-        const messages = await Message.find(query)
-          .populate('sender', 'username avatar')
-          .populate('room', 'roomName')
-          .sort({ createdAt: -1 })
-          .limit(100);
-    
-        res.status(200).json({
-          message: "Successfully fetched all messages",
-          count: messages.length,
-          data: messages.reverse() //oldest ke newest
-        });
-      } 
-      
-      catch (err) 
+    if (room.isPrivate) 
+    {
+      if (!userId) 
       {
-        console.error(err);
-        res.status(500).json({ error: "Server error", details: err.message });
+        return res.status(403).json({
+          error: "Access denied. This is a private room. Please login."
+        });
       }
-}
+      
+      const isCreator = room.creator._id.toString() === userId;
+      const isMember = room.members.some(
+        member => member._id.toString() === userId
+      );
+      
+      if (!isCreator && !isMember) 
+      {
+        return res.status(403).json({
+          error: "Access denied. You are not a member of this room."
+        });
+      }
+    }
+    
+    let query = { room: roomId };
+    
+    const messages = await Message.find(query)
+      .populate('sender', 'username avatar')
+      .populate('room', 'roomName')
+      .sort({ createdAt: -1 })
+      .limit(100);
+    
+    res.status(200).json({
+      message: "Successfully fetched all messages",
+      count: messages.length,
+      data: messages.reverse() //oldest ke newest
+    });
+  } 
+  
+  catch (err) 
+  {
+    console.error(err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
 
 //CREATE new message
 exports.sendMessage = async (req, res) =>
@@ -135,6 +163,7 @@ exports.deleteMessage = async (req, res) =>
           });
         }
     
+        const roomId = message.room._id.toString();
         await Message.findByIdAndDelete(msgid);
         
         try 
@@ -192,7 +221,9 @@ exports.editMessage = async (req, res) =>
             error: "Only the message's sender can edit"
           });
         }
-    
+        
+        const roomId = message.room._id.toString();
+        
         //update msg nya
         const updatedMessage = await Message.findByIdAndUpdate(
           msgid,
