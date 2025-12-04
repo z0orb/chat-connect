@@ -1,26 +1,39 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, createElement } from 'react'
 import Ably from 'ably'
 
-export const useAbly = (channelName) => {
-  const [channel, setChannel] = useState(null)
+const AblyContext = createContext(null)
+
+export function AblyProvider({ children }) {
+  const [client, setClient] = useState(null)
 
   useEffect(() => {
-    if (!channelName) {
-      setChannel(null)
+    const apiKey = import.meta.env.VITE_ABLY_API_KEY
+    
+    if (!apiKey) {
+      console.error('VITE_ABLY_API_KEY is missing')
       return
     }
 
-    const ablyClient = new Ably.Realtime(import.meta.env.VITE_ABLY_API_KEY)
-    const ablyChannel = ablyClient.channels.get(channelName)
+    const ablyClient = new Ably.Realtime(apiKey)
+    
+    ablyClient.connection.on('connected', () => {
+      console.log('Ably connected')
+    })
 
-    setChannel(ablyChannel)
+    ablyClient.connection.on('failed', (error) => {
+      console.error('Ably failed:', error)
+    })
 
-    // Proper cleanup function
+    setClient(ablyClient)
+
     return () => {
-      ablyChannel.unsubscribe()
       ablyClient.close()
     }
-  }, [channelName])
+  }, [])
 
-  return channel
+  return createElement(AblyContext.Provider, { value: client }, children)
+}
+
+export function useAbly() {
+  return useContext(AblyContext)
 }

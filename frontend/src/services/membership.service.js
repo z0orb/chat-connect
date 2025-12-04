@@ -1,31 +1,37 @@
-import api from './api'
+import api from './api';
 
-export async function getRoomMembers(roomId) {
-  const response = await api.get(`/rooms/${roomId}/members`)
-  return response.data
-}
+// Join a public room (Self-join) - Endpoint 21
+export const joinRoom = async (roomId) => {
+  const response = await api.post('/memberships/join', { roomId });
+  return response.data;
+};
 
-export async function joinRoom(roomId) {
-  const response = await api.post(`/memberships/join`, { roomId })
-  return response.data
-}
+// Leave a room (Self-leave) - Endpoint 23
+export const leaveRoom = async (roomId) => {
+  const response = await api.post('/memberships/leave', { roomId });
+  return response.data;
+};
 
-export async function addUserToRoom(roomId, userId) {
-  const response = await api.post('/memberships', { roomId, userId })
-  return response.data
-}
+// Get all members in a room - Endpoint 18
+export const getRoomMembers = async (roomId) => {
+  const response = await api.get(`/rooms/${roomId}/members`);
+  return response.data.data;
+};
 
-export async function removeUserFromRoom(roomId, userId) {
-  const response = await api.delete(`/rooms/${roomId}/members/${userId}`)
-  return response.data
-}
+// Add member to room (by admin/creator) - Endpoint 20
+export const addMember = async (userId, roomId) => {
+  const response = await api.post('/memberships', { userId, roomId });
+  return response.data;
+};
 
-export async function updateMemberRole(roomId, userId, role) {
-  const response = await api.patch(`/rooms/${roomId}/members/${userId}`, { role })
-  return response.data
-}
+// Update member role - Endpoint 22
+export const updateMemberRole = async (roomId, userId, role) => {
+  const response = await api.patch(`/rooms/${roomId}/members/${userId}`, { role });
+  return response.data;
+};
 
-export async function leaveRoom(roomId) {
-  const response = await api.post(`/memberships/leave`, { roomId })
-  return response.data
-}
+// Kick member from room - Endpoint 24
+export const kickMember = async (roomId, userId) => {
+  const response = await api.delete(`/rooms/${roomId}/members/${userId}`);
+  return response.data;
+};

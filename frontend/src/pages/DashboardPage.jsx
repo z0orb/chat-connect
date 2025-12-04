@@ -1,17 +1,31 @@
-import Navbar from '../components/Navbar'
+import { Routes, Route } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
-import ChatArea from '../components/ChatArea'
+import RoomPage from './RoomPage'
 import MemberList from '../components/MemberList'
 
-export default function DashboardPage() {
+export default function Dashboard() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#0f172a' }}>
-      <Navbar />
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        <Sidebar />
-        <ChatArea />
-        <MemberList />
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0f172a' }}>
+      {/* Left Sidebar - Always visible */}
+      <Sidebar />
+
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Routes>
+          <Route path="/" element={
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center' }}>
+                <h2 style={{ fontSize: '32px', fontWeight: '700', color: 'white', marginBottom: '12px' }}>Welcome to Chat Connect</h2>
+                <p style={{ color: '#94a3b8', fontSize: '16px' }}>Select a room to start chatting</p>
+              </div>
+            </div>
+          } />
+          <Route path="/rooms/:roomId" element={<RoomPage />} />
+        </Routes>
       </div>
+
+      {/* Right Member List */}
+      <MemberList />
     </div>
   )
 }
