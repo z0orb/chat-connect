@@ -10,6 +10,16 @@ export async function updateProfile(userId, data) {
   return response.data
 }
 
+export async function updateBio(bio) {
+  const response = await api.patch('/users/me', { bio })
+  return response.data
+}
+
+export async function updateUsername(username) {
+  const response = await api.patch('/users/me/username', { username })
+  return response.data
+}
+
 export async function getUserById(userId) {
   const response = await api.get(`/users/${userId}`)
   return response.data

@@ -3,21 +3,55 @@ import { useAuth } from '../hooks/useAuth'
 import * as userService from '../services/user.service'
 
 export default function ProfileModal({ onClose }) {
-  const { user, setUser } = useAuth()
+  const { user, updateUser } = useAuth()
   const [bio, setBio] = useState(user?.bio || '')
+  const [username, setUsername] = useState(user?.username || '')
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const handleUpdateBio = async () => {
     try {
       setLoading(true)
-      const updated = await userService.updateBio(user.id, bio)
-      setUser(updated)
+      await userService.updateBio(bio)
+      
+      const updatedUserData = {
+        ...user,
+        bio: bio
+      }
+      updateUser(updatedUserData)
+      
       alert('Bio updated successfully!')
       onClose()
     } catch (error) {
       console.error('Error updating bio:', error)
       alert('Failed to update bio')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateUsername = async () => {
+    if (!username.trim()) {
+      alert('Username cannot be empty')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await userService.updateUsername(username.trim())
+      
+      const updatedUserData = {
+        ...user,
+        username: username.trim()
+      }
+      updateUser(updatedUserData)
+      
+      setIsEditingUsername(false)
+      alert('Username updated successfully!')
+    } catch (error) {
+      console.error('Error updating username:', error)
+      alert(error.response?.data?.error || 'Failed to update username')
     } finally {
       setLoading(false)
     }
@@ -40,12 +74,49 @@ export default function ProfileModal({ onClose }) {
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
           <div style={{ width: '100px', height: '100px', background: 'linear-gradient(135deg, #3b82f6, #06b6d4)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '40px' }}>
-            {user?.username?.[0]?.toUpperCase()}
+            {username?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase()}
           </div>
         </div>
 
+        {/* Username Section with Edit */}
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '28px', fontWeight: '700', color: 'white', margin: 0 }}>{user?.username}</h3>
+          {!isEditingUsername ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+              <h3 style={{ fontSize: '28px', fontWeight: '700', color: 'white', margin: 0 }}>{username}</h3>
+              <button 
+                onClick={() => setIsEditingUsername(true)}
+                style={{ padding: '6px 12px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '6px', color: '#60a5fa', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                ✏️ Edit
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={{ padding: '8px 12px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '6px', color: 'white', fontSize: '18px', fontWeight: '600', textAlign: 'center', outline: 'none' }}
+                autoFocus
+              />
+              <button 
+                onClick={handleUpdateUsername}
+                disabled={loading}
+                style={{ padding: '8px 16px', background: loading ? 'rgba(34, 197, 94, 0.5)' : 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.5)', borderRadius: '6px', color: '#4ade80', fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer' }}
+              >
+                {loading ? '...' : '✓'}
+              </button>
+              <button 
+                onClick={() => {
+                  setUsername(user?.username || '')
+                  setIsEditingUsername(false)
+                }}
+                style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '6px', color: '#ef4444', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: '24px' }}>

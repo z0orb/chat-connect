@@ -5,6 +5,15 @@ const { verifyToken } = require('../middleware/auth');
 //GET semua user 
 router.get("/", controller.getAllUser);
 
+//GET current user (me)
+router.get("/me", verifyToken, controller.getCurrentUser);
+
+//UPDATE current user profile (me)
+router.patch("/me", verifyToken, controller.updateCurrentUserProfile);
+
+//UPDATE current user username (me)
+router.patch("/me/username", verifyToken, controller.updateCurrentUsername);
+
 //GET user by ID 
 router.get("/:uid", controller.getUserById);
 
