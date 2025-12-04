@@ -1,14 +1,17 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import * as userService from '../services/user.service'
 
 export default function ProfileModal({ onClose }) {
-  const { user, updateUser } = useAuth()
+  const navigate = useNavigate()
+  const { user, updateUser, logout } = useAuth()
   const [bio, setBio] = useState(user?.bio || '')
   const [username, setUsername] = useState(user?.username || '')
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const handleUpdateBio = async () => {
     try {
@@ -57,6 +60,40 @@ export default function ProfileModal({ onClose }) {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      '⚠️ WARNING: This will permanently delete your account and all associated data!\n\nAre you absolutely sure you want to delete your account? This action cannot be undone.'
+    )
+
+    if (!confirmDelete) return
+
+    const doubleConfirm = window.confirm(
+      'This is your last chance!\n\nType "DELETE" in the next prompt to confirm account deletion.'
+    )
+
+    if (!doubleConfirm) return
+
+    const userInput = window.prompt('Type DELETE to confirm:')
+    
+    if (userInput !== 'DELETE') {
+      alert('Account deletion cancelled - confirmation text did not match.')
+      return
+    }
+
+    try {
+      setDeleting(true)
+      await userService.deleteAccount()
+      alert('Account deleted successfully. You will be logged out.')
+      logout()
+      navigate('/login')
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      alert('Failed to delete account')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const copyUserId = () => {
     navigator.clipboard.writeText(user.id)
     setCopied(true)
@@ -81,14 +118,23 @@ export default function ProfileModal({ onClose }) {
         {/* Username Section with Edit */}
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           {!isEditingUsername ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: '28px', fontWeight: '700', color: 'white', margin: 0 }}>{username}</h3>
-              <button 
-                onClick={() => setIsEditingUsername(true)}
-                style={{ padding: '6px 12px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '6px', color: '#60a5fa', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-              >
-                ✏️ Edit
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  onClick={() => setIsEditingUsername(true)}
+                  style={{ padding: '6px 12px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '6px', color: '#60a5fa', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  ✏️ Edit
+                </button>
+                <button 
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  style={{ padding: '6px 12px', background: deleting ? 'rgba(239, 68, 68, 0.5)' : 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '6px', color: '#ef4444', fontSize: '14px', fontWeight: '600', cursor: deleting ? 'not-allowed' : 'pointer' }}
+                >
+                  {deleting ? '...' : '🗑️ Delete Account'}
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>

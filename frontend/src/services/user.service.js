@@ -20,6 +20,11 @@ export async function updateUsername(username) {
   return response.data
 }
 
+export async function deleteAccount() {
+  const response = await api.delete('/users/me')
+  return response.data
+}
+
 export async function getUserById(userId) {
   const response = await api.get(`/users/${userId}`)
   return response.data

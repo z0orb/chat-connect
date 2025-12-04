@@ -103,6 +103,25 @@ exports.updateCurrentUsername = async (req, res) => {
     }
   };
   
+  //DELETE current user account (me)
+exports.deleteCurrentUserAccount = async (req, res) => {
+    try {
+      const userId = req.userId; // From JWT token
+  
+      const user = await User.findByIdAndDelete(userId);
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      res.status(200).json({
+        message: "User account successfully deleted"
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error', details: err.message });
+    }
+  };
   
 
 //GET semua user 

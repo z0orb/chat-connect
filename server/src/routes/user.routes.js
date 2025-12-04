@@ -14,6 +14,9 @@ router.patch("/me", verifyToken, controller.updateCurrentUserProfile);
 //UPDATE current user username (me)
 router.patch("/me/username", verifyToken, controller.updateCurrentUsername);
 
+//DELETE akun current user (me)
+router.delete("/me", verifyToken, controller.deleteCurrentUserAccount);
+
 //GET user by ID 
 router.get("/:uid", controller.getUserById);
 
