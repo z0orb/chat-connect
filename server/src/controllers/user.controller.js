@@ -1,5 +1,110 @@
 const User = require('../models/User');
 
+//GET current user (me)
+exports.getCurrentUser = async (req, res) => {
+    try {
+      const userId = req.userId; // From JWT token
+  
+      const user = await User.findById(userId)
+        .select('-password')
+        .populate('createdRooms', 'roomName roomId')
+        .populate('joinedRooms', 'roomName roomId');
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      res.status(200).json({
+        message: "Successfully fetched current user data",
+        data: user
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error", details: err.message });
+    }
+  };
+  
+  //UPDATE current user profile (me)
+  exports.updateCurrentUserProfile = async (req, res) => {
+    try {
+      const userId = req.userId; // From JWT token
+      const { username, bio, avatar, status } = req.body;
+  
+      // Build update object
+      const updateData = {};
+      if (username) updateData.username = username;
+      if (bio !== undefined) updateData.bio = bio; // Allow empty string
+      if (avatar) updateData.avatar = avatar;
+      if (status) updateData.status = status;
+  
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ 
+          error: "You must update a minimum of 1 field" 
+        });
+      }
+  
+      const user = await User.findByIdAndUpdate(
+        userId,
+        updateData,
+        { new: true, runValidators: true }
+      ).select('-password');
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      res.status(200).json({
+        message: "Profile successfully updated",
+        data: user
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error", details: err.message });
+    }
+  };
+
+  //UPDATE current user username (me)
+exports.updateCurrentUsername = async (req, res) => {
+    try {
+      const userId = req.userId; // From JWT token
+      const { username } = req.body;
+  
+      if (!username || username.trim() === '') {
+        return res.status(400).json({ error: "Username must be filled" });
+      }
+  
+      // Check if username already exists
+      const existingUser = await User.findOne({
+        username,
+        _id: { $ne: userId }
+      });
+  
+      if (existingUser) {
+        return res.status(400).json({ error: "Username has already been used" });
+      }
+  
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { username: username.trim() },
+        { new: true, runValidators: true }
+      ).select('-password');
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      res.status(200).json({
+        message: "Username successfully updated",
+        data: user
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error", details: err.message });
+    }
+  };
+  
+  
+
 //GET semua user 
 exports.getAllUser = async (req, res) =>
 {
@@ -210,3 +315,4 @@ exports.deleteUserAccount = async (req, res) =>
         res.status(500).json({ error: 'Server error', details: err.message });
       }
 };
+
