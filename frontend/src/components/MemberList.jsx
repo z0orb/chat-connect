@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useRoom } from '../hooks/useRoom.js'
+import { useRoom } from '../hooks/useRoom'
 
 export default function MemberList() {
   const { currentRoom } = useRoom()

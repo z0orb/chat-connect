@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useRoom } from '../hooks/useRoom'
+import { useAuth } from '../hooks/useAuth'
 import * as roomService from '../services/room.service'
 import ChatArea from '../components/ChatArea'
 import AddMemberModal from '../components/AddMemberModal'
+import EditRoomModal from '../components/EditRoomModal'
 
 export default function RoomPage() {
   const { roomId } = useParams()
+  const { selectRoom, setCurrentRoom } = useRoom()
+  const { user } = useAuth()
   const [room, setRoom] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAddMember, setShowAddMember] = useState(false)
+  const [showEditRoom, setShowEditRoom] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (roomId) {
       fetchRoomData()
+    }
+
+    return () => {
+      setCurrentRoom(null)
     }
   }, [roomId])
 
@@ -22,6 +32,7 @@ export default function RoomPage() {
       setLoading(true)
       const data = await roomService.getRoomById(roomId)
       setRoom(data)
+      selectRoom(data)
     } catch (error) {
       console.error('Error fetching room:', error)
     } finally {
@@ -33,6 +44,10 @@ export default function RoomPage() {
     navigator.clipboard.writeText(room._id)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const isRoomCreator = () => {
+    return room?.creator?._id === user?.id || room?.creator === user?.id
   }
 
   if (loading) {
@@ -99,14 +114,27 @@ export default function RoomPage() {
             </div>
           </div>
 
-          {room.isPrivate && (
-            <button
-              onClick={() => setShowAddMember(true)}
-              style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-            >
-              + Add Member
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Edit Button - Only for creator */}
+            {isRoomCreator() && (
+              <button
+                onClick={() => setShowEditRoom(true)}
+                style={{ padding: '10px 20px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '8px', color: '#e2e8f0', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                ✏️ Edit
+              </button>
+            )}
+
+            {/* Add Member Button - Only for private rooms */}
+            {room.isPrivate && (
+              <button
+                onClick={() => setShowAddMember(true)}
+                style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                + Add Member
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -118,6 +146,14 @@ export default function RoomPage() {
           roomId={room._id}
           onClose={() => setShowAddMember(false)}
           onAdded={fetchRoomData}
+        />
+      )}
+
+      {showEditRoom && (
+        <EditRoomModal
+          room={room}
+          onClose={() => setShowEditRoom(false)}
+          onUpdated={fetchRoomData}
         />
       )}
     </div>

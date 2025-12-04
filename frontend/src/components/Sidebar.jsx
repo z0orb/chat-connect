@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useRoom } from '../hooks/useRoom.js'
+import { useAuth } from '../hooks/useAuth'
 import * as roomService from '../services/room.service'
 import CreateRoomModal from './CreateRoomModal'
 import JoinRoomModal from './JoinRoomModal'
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { rooms, setRooms, setCurrentRoom, currentRoom } = useRoom()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
@@ -31,6 +33,30 @@ export default function Sidebar() {
   const handleSelectRoom = (room) => {
     setCurrentRoom(room)
     navigate(`/rooms/${room._id}`)
+  }
+
+  const handleDeleteRoom = async (roomId, e) => {
+    e.stopPropagation()
+    
+    if (!window.confirm('Are you sure you want to delete this room?')) {
+      return
+    }
+
+    try {
+      await roomService.deleteRoom(roomId)
+      fetchRooms()
+      if (currentRoom?._id === roomId) {
+        setCurrentRoom(null)
+        navigate('/')
+      }
+    } catch (error) {
+      console.error('Error deleting room:', error)
+      alert(error.response?.data?.error || 'Failed to delete room')
+    }
+  }
+
+  const isRoomCreator = (room) => {
+    return room.creator?._id === user?.id || room.creator === user?.id
   }
 
   return (
@@ -66,6 +92,16 @@ export default function Sidebar() {
                     <p style={{ color: 'white', fontSize: '15px', fontWeight: '600', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{room.roomName}</p>
                     <p style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>{room.memberCount} members</p>
                   </div>
+                  {/* Delete Button - Only for creator */}
+                  {isRoomCreator(room) && (
+                    <div
+                      onClick={(e) => handleDeleteRoom(room._id, e)}
+                      style={{ padding: '6px 8px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '6px', color: '#ef4444', fontSize: '12px', cursor: 'pointer', flexShrink: 0 }}
+                      title="Delete Room"
+                    >
+                      🗑️
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -85,4 +121,3 @@ export default function Sidebar() {
     </>
   )
 }
-    
