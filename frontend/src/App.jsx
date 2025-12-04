@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { RoomProvider } from './context/RoomContext'
 import { AblyProvider } from './hooks/useAbly'
@@ -17,6 +17,9 @@ function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              
+              {/* Redirect /dashboard to / */}
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
               
               <Route path="/" element={
                 <ProtectedRoute>
