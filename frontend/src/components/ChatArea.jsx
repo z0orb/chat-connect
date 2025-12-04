@@ -7,6 +7,8 @@ export default function ChatArea({ room }) {
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
+  const [editContent, setEditContent] = useState('')
   const messagesEndRef = useRef(null)
   const { user } = useAuth()
   const ably = useAbly()
@@ -20,15 +22,14 @@ export default function ChatArea({ room }) {
   useEffect(() => {
     if (!ably || !room?._id) return
 
-    console.log('🔌 Connecting to Ably channel:', `rooms:${room._id}`)
+    console.log('Connecting to Ably channel:', `rooms:${room._id}`)
     
     const channel = ably.channels.get(`rooms:${room._id}`)
     
     // Subscribe to new messages
     channel.subscribe('receive_message', (message) => {
-      console.log('📩 New message received:', message.data)
+      console.log('New message received:', message.data)
       
-      // Transform backend data to match expected format
       const formattedMessage = {
         _id: message.data._id || message.data.messageId,
         content: message.data.content || message.data.message,
@@ -41,7 +42,6 @@ export default function ChatArea({ room }) {
         isEdited: message.data.isEdited || false
       }
       
-      // Check if message already exists (avoid duplicates)
       setMessages((prev) => {
         const exists = prev.some(m => m._id === formattedMessage._id)
         if (exists) return prev
@@ -53,19 +53,19 @@ export default function ChatArea({ room }) {
 
     // Subscribe to deleted messages
     channel.subscribe('message_deleted', (message) => {
-      console.log('🗑️ Message deleted:', message.data)
+      console.log('Message deleted:', message.data)
       setMessages((prev) => prev.filter(m => m._id !== message.data.messageId))
     })
 
     // Subscribe to edited messages
     channel.subscribe('message_edited', (message) => {
-      console.log('✏️ Message edited:', message.data)
+      console.log('Message edited:', message.data)
       setMessages((prev) =>
         prev.map(m => {
-          if (m._id === message.data.messageId) {
+          if (m._id === message.data._id) {
             return {
               ...m,
-              content: message.data.newContent,
+              content: message.data.content,
               isEdited: true,
               editedAt: message.data.editedAt
             }
@@ -76,7 +76,7 @@ export default function ChatArea({ room }) {
     })
 
     return () => {
-      console.log('🔌 Disconnecting from Ably channel')
+      console.log('Disconnecting from Ably channel')
       channel.unsubscribe()
     }
   }, [room?._id, ably])
@@ -111,6 +111,35 @@ export default function ChatArea({ room }) {
       alert('Failed to send message')
     }
   }
+
+  const handleEditMessage = async (messageId) => {
+    if (!editContent.trim()) {
+      alert('Message cannot be empty')
+      return
+    }
+
+    try {
+      await messageService.editMessage(messageId, editContent.trim())
+      setEditingId(null)
+      setEditContent('')
+    } catch (error) {
+      console.error('Error editing message:', error)
+      alert(error.response?.data?.error || 'Failed to edit message')
+    }
+  }
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm('Are you sure you want to delete this message?')) return
+
+    try {
+      await messageService.deleteMessage(messageId)
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      alert(error.response?.data?.error || 'Failed to delete message')
+    }
+  }
+
+  const canEditDelete = (msg) => msg.sender?._id === user?.id
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -169,9 +198,60 @@ export default function ChatArea({ room }) {
                     <span style={{ color: '#64748b', fontSize: '11px', fontStyle: 'italic' }}>(edited)</span>
                   )}
                 </div>
-                <div style={{ background: 'rgba(51, 65, 85, 0.5)', padding: '10px 14px', borderRadius: '10px', color: '#e2e8f0', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word' }}>
-                  {msg.content}
-                </div>
+
+                {/* Edit Mode */}
+                {editingId === msg._id ? (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      style={{ flex: 1, padding: '8px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '8px', color: 'white', fontSize: '14px', fontFamily: 'inherit', minHeight: '60px', resize: 'vertical' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <button
+                        onClick={() => handleEditMessage(msg._id)}
+                        style={{ padding: '6px 12px', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.5)', borderRadius: '6px', color: '#4ade80', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        style={{ padding: '6px 12px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '6px', color: '#ef4444', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ background: 'rgba(51, 65, 85, 0.5)', padding: '10px 14px', borderRadius: '10px', color: '#e2e8f0', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word', flex: 1 }}>
+                      {msg.content}
+                    </div>
+
+                    {/* Edit/Delete Buttons - Always Visible */}
+                    {canEditDelete(msg) && (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => {
+                            setEditingId(msg._id)
+                            setEditContent(msg.content)
+                          }}
+                          style={{ padding: '4px 8px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '4px', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(msg._id)}
+                          style={{ padding: '4px 8px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '4px', color: '#ef4444', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))
@@ -202,3 +282,4 @@ export default function ChatArea({ room }) {
     </div>
   )
 }
+  

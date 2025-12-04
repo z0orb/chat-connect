@@ -239,10 +239,12 @@ exports.editMessage = async (req, res) =>
          try 
          {
           await ably.channels.get(`rooms:${roomId}`).publish('message_edited', {
-            messageId: msgid,
-            newContent: updatedMessage.content,
+            _id: msgid,
+            content: updatedMessage.content,
+            isEdited: true,
             editedAt: updatedMessage.editedAt
           });
+          
 
           console.log(`Message edit published to rooms:${roomId}`);
         } 

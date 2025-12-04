@@ -1,6 +1,8 @@
 const router = require("express").Router();
+const express = require('express')
 const controller = require("../controllers/message.controller");
 const { verifyToken } = require('../middleware/auth');
+
 
 //GET semua message
 router.get("/", verifyToken, controller.getAll);
