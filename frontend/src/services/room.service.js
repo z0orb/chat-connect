@@ -1,51 +1,26 @@
-import axios from 'axios'
-
-const API_URL = 'http://localhost:5000/api/rooms'
-
-// Get auth token
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-export const createRoom = async (roomData) => {
-  const response = await axios.post(API_URL, roomData, {
-    headers: getAuthHeader()
-  })
-  return response.data.data // ← Extract 'data' from response
-}
+import api from './api';
 
 export const getAllRooms = async () => {
-  const response = await axios.get(API_URL, {
-    headers: getAuthHeader()
-  })
-  return response.data.data // ← Extract 'data' from response
-}
-
-export const getPublicRooms = async () => {
-  const response = await axios.get(`${API_URL}`, {
-    headers: getAuthHeader()
-  })
-  return response.data.data // ← Extract 'data' from response
-}
+  const response = await api.get('/rooms');
+  return response.data.data;
+};
 
 export const getRoomById = async (roomId) => {
-  const response = await axios.get(`${API_URL}/${roomId}`, {
-    headers: getAuthHeader()
-  })
-  return response.data.data // ← Extract 'data' from response
-}
+  const response = await api.get(`/rooms/${roomId}`);
+  return response.data.data;
+};
+
+export const createRoom = async (roomData) => {
+  const response = await api.post('/rooms', roomData);
+  return response.data.data;
+};
 
 export const updateRoom = async (roomId, roomData) => {
-  const response = await axios.patch(`${API_URL}/${roomId}`, roomData, {
-    headers: getAuthHeader()
-  })
-  return response.data.data // ← Extract 'data' from response
-}
+  const response = await api.put(`/rooms/${roomId}`, roomData);
+  return response.data.data;
+};
 
 export const deleteRoom = async (roomId) => {
-  const response = await axios.delete(`${API_URL}/${roomId}`, {
-    headers: getAuthHeader()
-  })
-  return response.data
-}
+  const response = await api.delete(`/rooms/${roomId}`);
+  return response.data;
+};
