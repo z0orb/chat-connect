@@ -1,7 +1,7 @@
 const User = require('../models/User');
 
 //GET current user (me)
-exports.getCurrentUser = async (req, res) => {
+exports.getCurrentUser = async (req, res) => { //IMPLEMENTED
     try {
       const userId = req.userId; // From JWT token
   
@@ -25,7 +25,7 @@ exports.getCurrentUser = async (req, res) => {
   };
   
   //UPDATE current user profile (me)
-  exports.updateCurrentUserProfile = async (req, res) => {
+  exports.updateCurrentUserProfile = async (req, res) => { //IMPLEMENTED
     try {
       const userId = req.userId; // From JWT token
       const { username, bio, avatar, status } = req.body;
@@ -64,7 +64,7 @@ exports.getCurrentUser = async (req, res) => {
   };
 
   //UPDATE current user username (me)
-exports.updateCurrentUsername = async (req, res) => {
+exports.updateCurrentUsername = async (req, res) => { //IMPLEMENTED
     try {
       const userId = req.userId; // From JWT token
       const { username } = req.body;
@@ -104,7 +104,7 @@ exports.updateCurrentUsername = async (req, res) => {
   };
   
   //DELETE current user account (me)
-exports.deleteCurrentUserAccount = async (req, res) => {
+exports.deleteCurrentUserAccount = async (req, res) => { //IMPLEMENTED
     try {
       const userId = req.userId; // From JWT token
   
@@ -125,7 +125,7 @@ exports.deleteCurrentUserAccount = async (req, res) => {
   
 
 //GET semua user 
-exports.getAllUser = async (req, res) =>
+exports.getAllUser = async (req, res) => //IMPLEMENTED (possibly POSTMAN only, tergantung FE pakai getAllUser atau getUserinRoom)
 {
     try
     {
@@ -149,7 +149,7 @@ exports.getAllUser = async (req, res) =>
 };
 
 //GET user by ID 
-exports.getUserById = async (req, res) =>
+exports.getUserById = async (req, res) => //POSTMAN ONLY
 {
     try
     {
@@ -179,7 +179,7 @@ exports.getUserById = async (req, res) =>
 };
 
 //UPDATE username
-exports.updateUsername = async (req, res) =>
+exports.updateUsername = async (req, res) => //DEPRECATED ENDPOINT
 {
     try
     {
@@ -227,7 +227,7 @@ exports.updateUsername = async (req, res) =>
 };
 
 //UPDATE bio
-exports.updateBio = async (req, res) =>
+exports.updateBio = async (req, res) => //IMPLEMENTED
 {
     try
     {
@@ -264,7 +264,7 @@ exports.updateBio = async (req, res) =>
 };
 
 //UPDATE user profile (username, bio, avatar, status)
-exports.updateProfile = async (req, res) =>
+exports.updateProfile = async (req, res) => //TIDAK JADI DIPAKAI
 {
     try 
     {
@@ -310,7 +310,7 @@ exports.updateProfile = async (req, res) =>
 };
 
 //DELETE akun user
-exports.deleteUserAccount = async (req, res) =>
+exports.deleteUserAccount = async (req, res) => //DEPRECATED FUNCTION
 {
     try {
         const { uid } = req.params;

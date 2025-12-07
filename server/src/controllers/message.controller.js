@@ -5,7 +5,7 @@ const Ably = require('ably');
 const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua message
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res) => { //IMPLEMENTED
   try {
     const { roomId } = req.query;
     const userId = req.userId;
@@ -66,7 +66,7 @@ exports.getAll = async (req, res) => {
 
 
 //CREATE new message
-exports.sendMessage = async (req, res) =>
+exports.sendMessage = async (req, res) => //IMPLEMENTED
 {
     try 
     {
@@ -141,7 +141,7 @@ exports.sendMessage = async (req, res) =>
 }
 
 //DELETE message from chat by message id
-exports.deleteMessage = async (req, res) =>
+exports.deleteMessage = async (req, res) => //IMPLEMENTED
 {
     try 
     {
@@ -194,7 +194,7 @@ exports.deleteMessage = async (req, res) =>
 }
 
 //UPDATE message (editing message by message id)
-exports.editMessage = async (req, res) =>
+exports.editMessage = async (req, res) =>  //IMPLEMENTED
 {
     try 
     {

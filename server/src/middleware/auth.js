@@ -66,7 +66,7 @@ exports.verifyToken = (req, res, next) =>
   }
 };
 
-exports.optionalToken = (req, res, next) => 
+exports.optionalToken = (req, res, next) => //TIDAK JADI DIPAKAI, Niatnya buat pemisah verifyToken untuk minor things.
 {
   try {
     const authHeader = req.headers.authorization;

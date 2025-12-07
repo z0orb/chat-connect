@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 //CREATE akun baru / register
-exports.register = async (req, res) =>
+exports.register = async (req, res) => //IMPLEMENTED
 {
     try
     {
@@ -58,7 +58,7 @@ exports.register = async (req, res) =>
 };
 
 //CREATE login existing akun user
-exports.login = async (req, res) =>
+exports.login = async (req, res) => //IMPLEMENTED
 {
     try
     {

@@ -6,7 +6,7 @@ const Ably = require('ably');
 const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua anggota room
-exports.getAllMembers = async (req, res) => 
+exports.getAllMembers = async (req, res) => //IMPLEMENTED
 {
     try 
     {
@@ -49,7 +49,7 @@ exports.getAllMembers = async (req, res) =>
 };
 
 //GET user dalam room by id
-exports.getMemberById = async (req, res) => 
+exports.getMemberById = async (req, res) => //POSTMAN TESTING ONLY
 {
     try 
     {
@@ -99,7 +99,7 @@ exports.getMemberById = async (req, res) =>
 };
 
 //CREATE add user ke dalam room / create membership status
-exports.addMember = async (req, res) => 
+exports.addMember = async (req, res) =>  //IMPLEMENTED
 {
     try 
     {
@@ -197,7 +197,7 @@ exports.addMember = async (req, res) =>
 };
 
 //UPDATE member role room member
-exports.updateMemberRole = async (req, res) =>
+exports.updateMemberRole = async (req, res) =>  //NOT IMPLEMENTED
 {
     try 
     {
@@ -269,7 +269,7 @@ exports.updateMemberRole = async (req, res) =>
       }
 };
   
-//DELETE status membership user / kick user dari room
+//DELETE status membership user / kick user dari room //IMPLEMENTED
 exports.kickMemberById = async (req, res) => 
 {
     try 
@@ -364,7 +364,7 @@ exports.kickMemberById = async (req, res) =>
 };
 
 //POST (join room by sendiri)
-exports.joinRoom = async (req, res) => 
+exports.joinRoom = async (req, res) => //IMPLEMENTED
 {
   try 
   {
@@ -472,8 +472,8 @@ exports.joinRoom = async (req, res) =>
   }
 };
 
-//DELETE (remove diri sendiri dari room)
-exports.leaveRoom = async (req, res) => 
+//DELETE (remove diri sendiri dari room) 
+exports.leaveRoom = async (req, res) =>  //IMPLEMENTED
 {
   try 
   {

@@ -6,7 +6,7 @@ const Ably = require('ably');
 const ably = new Ably.Rest(process.env.ABLY_API_KEY);
 
 //GET semua room
-exports.getAllRooms = async (req, res) => 
+exports.getAllRooms = async (req, res) => //IMPLEMENTED
 {
   try 
   {
@@ -59,7 +59,7 @@ exports.getAllRooms = async (req, res) =>
 };
 
 //GET room by room id
-exports.getRoomById = async (req, res) => 
+exports.getRoomById = async (req, res) => //POSTMAN ONLY
 {
   try 
   {
@@ -124,7 +124,7 @@ exports.getRoomById = async (req, res) =>
 };
 
 //CREATE room baru
-exports.createRoom = async (req, res) =>
+exports.createRoom = async (req, res) => //IMPLEMENTED
 {
     try {
         const { roomName, description, isPrivate } = req.body;
@@ -195,7 +195,7 @@ exports.createRoom = async (req, res) =>
 };
 
 //UPDATE room info ke db
-exports.updateRoom = async (req, res) =>
+exports.updateRoom = async (req, res) => //IMPLEMENTED
 {
     try {
         const { rid } = req.params;
@@ -264,7 +264,7 @@ exports.updateRoom = async (req, res) =>
 };
 
 //DELETE room by room id
-exports.deleteRoomById = async (req, res) =>
+exports.deleteRoomById = async (req, res) => //IMPLEMENTED
 {
     try {
         const { rid } = req.params;
